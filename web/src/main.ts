@@ -11,7 +11,7 @@ import {
   verticesOf,
   vertexDecimal,
 } from "./api/bridge";
-import { demo } from "./app/demo";
+import { exampleSource, requestedExample } from "./app/examples";
 import { BLAME, collect } from "./app/draw";
 import { runFacts, showingWords, summarize } from "./app/summary";
 import type { Ending, Summary } from "./app/summary";
@@ -175,7 +175,6 @@ async function main() {
       viewport.setPaused(open);
       if (open) sheet.goTo("peek");
     },
-    onRestore: () => restore(),
   });
   const outEl = document.getElementById("out")!;
   outputPanel = makeOutputPanel(viewportEl, outEl, {
@@ -199,17 +198,18 @@ async function main() {
 
   await initWasm();
 
-  const restore = () => {
-    store.clear();
-    editor.dispatch({
-      changes: { from: 0, to: editor.state.doc.length, insert: demo },
-    });
-    doRun();
-  };
-
   const doRun = () => {
     const source = editor.state.doc.toString();
-    store.write(source);
+    // An example opened from a link is not the author's script: it is not saved over
+    // theirs until they change it, and once they do, the link's `?example=` goes, so a
+    // reload brings back their own work rather than the example.
+    if (source !== example) {
+      store.write(source);
+      if (example !== null) {
+        example = null;
+        history.replaceState(null, "", location.pathname);
+      }
+    }
     // After the write: a localStorage round-trip is not part of building anything, and
     // `built in …` is the sentence this number ends up in.
     const t0 = performance.now();
@@ -280,7 +280,9 @@ async function main() {
     sheet.goTo(sum.failed ? "half" : "peek");
   };
 
-  editor = makeEditor(document.getElementById("editor")!, store.read() ?? demo, doRun);
+  const asked = requestedExample(location.search);
+  let example = asked === null ? null : await exampleSource(asked);
+  editor = makeEditor(document.getElementById("editor")!, example ?? store.read() ?? "", doRun);
   // Typing is the whole task while it lasts: give the editor every pixel the phone
   // has left once the keyboard is up (a no-op on the desktop).
   // The keyboard does not move the sheet. Wherever you left it — half, full — is

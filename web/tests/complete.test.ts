@@ -82,7 +82,7 @@ describe("what a value carries", () => {
   });
 
   it("a reassignment is followed, not just the declaration", () => {
-    // The demo does exactly this, and reading only `let` would freeze the type.
+    // Scripts do this (`part = pad(…)`), and reading only `let` would freeze the type.
     const doc = `let s = sketch(XY);\ns = cuboid({ size: [1,1,1] });\ns.`;
     expect(offered(doc)).toContain("translate");
     expect(offered(doc)).not.toContain("moveTo");

@@ -29,7 +29,7 @@ import { queries } from "./queries";
 // The declarations a script is described by — read as text, since nothing loads it.
 import ts from "typescript";
 import dts from "../src/api/nacre.d.ts?raw";
-import { demo } from "../src/app/demo";
+import { EXAMPLES } from "./examples";
 import { cheatScript } from "../src/app/cheatsheet";
 import type { TypeName } from "../src/api/docs";
 
@@ -383,7 +383,7 @@ describe("a stray key is named, at every documented options position", () => {
 //
 // Nothing checks a script today — sucrase strips the types and the editor only highlights
 // them — so `nacre.d.ts` is prose that nobody executes, and prose drifts: a predicate asked
-// for a `boolean` while the demo's own `f.normal?.isClose(Z)` is `boolean | undefined`, or a
+// for a `boolean` while the ordinary `f.normal?.isClose(Z)` is `boolean | undefined`, or a
 // `display` that takes neither a sketch nor an `edges` option, both of which the app takes
 // and the cheat sheet writes. This is the compiler reading it.
 //
@@ -422,11 +422,8 @@ describe("the app's own scripts against the app's own declarations", () => {
       });
   }
 
-  it("the demo and the cheat sheet have nothing to say to the compiler", () => {
-    for (const [what, src] of [
-      ["demo", demo],
-      ["cheat sheet", cheatScript()],
-    ] as const) {
+  it("the examples and the cheat sheet have nothing to say to the compiler", () => {
+    for (const [what, src] of [...EXAMPLES, ["cheat sheet", cheatScript()]] as const) {
       expect(diagnose(src), what).toEqual([]);
     }
   });

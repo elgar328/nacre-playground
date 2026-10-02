@@ -1,5 +1,5 @@
 // Run every example in ../examples, render a thumbnail of what it draws, and write the
-// images and a manifest to the output directory (default: gallery/out).
+// images, a manifest and the gallery page to the output directory (default: gallery/out).
 //
 //   npm run gallery [-- out-dir]
 //
@@ -11,18 +11,13 @@ import { basename, join } from "node:path";
 import { sceneOf } from "./run";
 import { render } from "./render";
 import { encodePng } from "./png";
+import { galleryPage } from "./page";
+import type { Entry } from "./page";
 
 const EXAMPLES = join(__dirname, "../../examples");
 const OUT = process.argv[2] ?? join(__dirname, "out");
 const WIDTH = 640;
 const HEIGHT = 480;
-
-interface Entry {
-  id: number;
-  ok: boolean;
-  message?: string;
-  ms: number;
-}
 
 mkdirSync(OUT, { recursive: true });
 const entries: Entry[] = [];
@@ -42,4 +37,5 @@ for (const file of readdirSync(EXAMPLES).filter((f) => /^\d+\.ts$/.test(f)).sort
   console.log(`${entry.ok ? "ok  " : "FAIL"} ${id} (${entry.ms} ms)${entry.message ? ` — ${entry.message}` : ""}`);
 }
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(entries, null, 2));
+writeFileSync(join(OUT, "index.html"), galleryPage(entries, join(__dirname, "../../..")));
 if (entries.some((e) => !e.ok)) process.exitCode = 1;

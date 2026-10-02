@@ -1,5 +1,5 @@
 // The framing arithmetic, locked. This calculation can go wrong silently (a distance
-// from the model's size alone clips the demo plate on a wide window), and a sheet that
+// from the model's size alone clips a wide plate on a wide window), and a sheet that
 // reshapes the viewport makes every aspect routine.
 
 import { describe, expect, it } from "vitest";

@@ -10,11 +10,7 @@ export interface CheatPanel {
   isOpen(): boolean;
 }
 
-export interface CheatHooks extends OverlayHooks {
-  /** The way back to the sample script — it lives at the foot of the sheet, which is
-   * where someone wondering "how do I get the example back?" is already looking. */
-  onRestore: () => void;
-}
+export type CheatHooks = OverlayHooks;
 
 /** Build the panel inside `host` (the viewport) and wire its ways out. `onChange` is
  * told whenever it opens or closes — the app uses it to rest the render loop and, on
@@ -50,17 +46,7 @@ export function makeCheatPanel(
   const footer = document.createElement("p");
   footer.className = "foot";
   footer.textContent = CHEAT_FOOTER;
-  const restore = document.createElement("button");
-  restore.className = "btn ghost";
-  restore.id = "cheat-restore";
-  restore.textContent = "restore the demo script";
-  footer.append(document.createElement("br"), restore);
   body.appendChild(footer);
-
-  restore.addEventListener("click", () => {
-    hooks.onRestore();
-    panel.close();
-  });
 
   return panel;
 }

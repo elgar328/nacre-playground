@@ -73,9 +73,9 @@ declare class VertexPick {
 declare class VertexList {
   nearest(p: Vec3): VertexPick;
   /** The answer is read for its **truth**, not required to be a boolean — the same
-   * rule `Array.prototype.filter` keeps. Declaring `boolean` here made the app's own
-   * demo not type-check against its own declarations: `f.normal?.isClose(Z)` is
-   * `boolean | undefined` on a curved face. Measured. */
+   * rule `Array.prototype.filter` keeps. Declared `boolean`, the ordinary
+   * `f.normal?.isClose(Z)` would not type-check: it is `boolean | undefined` on a curved
+   * face. */
   filter(pred: (v: VertexPick) => unknown): VertexPick[];
   readonly length: number;
 }

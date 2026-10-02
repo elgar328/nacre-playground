@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { transform } from "sucrase";
 import { MARKER, markCalls } from "../src/app/mark";
-import { demo } from "../src/app/demo";
+import { EXAMPLES } from "./examples";
 import { cheatScript } from "../src/app/cheatsheet";
 
 /** Run `src`, with or without markers, and collect what it said. */
@@ -103,7 +103,7 @@ describe("marking does not change what a script means", () => {
   // broken source would show up as "no line numbers today" and nothing else. This is what
   // watches that silence.
   it("everything the app ships still compiles after marking", () => {
-    for (const [what, src] of [["demo", demo], ["cheat sheet", cheatScript()], ...SHAPES] as const) {
+    for (const [what, src] of [...EXAMPLES, ["cheat sheet", cheatScript()], ...SHAPES] as const) {
       expect(() => transform(markCalls(src), { transforms: ["typescript"] }), what).not.toThrow();
     }
   });

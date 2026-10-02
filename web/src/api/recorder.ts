@@ -300,8 +300,8 @@ function colour(x: unknown, what: string): string {
  * parameters are `unknown` so this cannot be skipped.
  *
  * What it *returns* is not this door's business. A predicate's answer is read for its
- * truth, which is JavaScript's own rule and `Array.prototype.filter`'s — the app's own
- * demo writes `f.normal?.isClose(Z)`, which is `undefined` on a curved face. A key is
+ * truth, which is JavaScript's own rule and `Array.prototype.filter`'s — a script writes
+ * `f.normal?.isClose(Z)`, which is `undefined` on a curved face. A key is
  * compared, which is a different thing; `maxBy` asks about its answer where it reads it. */
 function callable(x: unknown, what: string): (...args: unknown[]) => unknown {
   return typeof x === "function"

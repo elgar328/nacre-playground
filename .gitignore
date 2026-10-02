@@ -6,3 +6,4 @@ node_modules/
 /web/src/wasm/pkg-node
 /web/.vite-dev.log
 /web/gallery/out
+/web/site

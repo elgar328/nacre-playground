@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import * as wasm from "../src/wasm/pkg-node/nacre_playground_wasm.js";
 import { executeScript } from "../src/app/runtime";
 import { queries } from "./queries";
+import { EXAMPLES } from "./examples";
 
 function runScript(code: string) {
   const script = executeScript(code, queries);
@@ -108,11 +109,12 @@ describe("selector misuse fails in the script, with words", () => {
   });
 });
 
-describe("the greeting", () => {
-  it("the demo script the app opens with runs clean", async () => {
-    const { demo } = await import("../src/app/demo");
-    const { out } = runScript(demo);
-    expect(out.ok, out.ok ? "" : out.message).toBe(true);
-    expect(out.rendered).toHaveLength(1);
+describe("the examples", () => {
+  it("every example the gallery shows runs clean", () => {
+    expect(EXAMPLES.length).toBeGreaterThan(0);
+    for (const [what, src] of EXAMPLES) {
+      const { out } = runScript(src);
+      expect(out.ok, `${what}: ${out.ok ? "" : out.message}`).toBe(true);
+    }
   });
 });

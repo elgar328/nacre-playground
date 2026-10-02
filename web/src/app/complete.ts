@@ -126,8 +126,8 @@ export function typeOf(
 }
 
 /** The right-hand side of the last `let`/`const`/assignment to `name` before `pos`.
- * Assignments count because a script may reassign — the demo does exactly that
- * (`part = pad(cap, boss, 3)`), and reading only declarations would freeze the type at
+ * Assignments count because a script may reassign (`part = pad(cap, boss, 3)`), and
+ * reading only declarations would freeze the type at
  * whatever it was first. */
 function lastBindingBefore(
   state: EditorState,

@@ -1,9 +1,9 @@
 // Framing arithmetic — the part of the viewport that can be wrong silently.
 //
 // A camera distance chosen from the model's size alone ignores the *shape* of the
-// canvas, and clips the model as soon as the canvas is not roughly square: it cuts the
-// demo plate off on a wide desktop window, and a sheet that shrinks the
-// viewport makes every shape from tall-and-thin to wide-and-flat routine.
+// canvas, and clips the model as soon as the canvas is not roughly square: it cuts a
+// wide plate off on a wide desktop window, and a sheet that shrinks the viewport makes
+// every shape from tall-and-thin to wide-and-flat routine.
 
 /** Which lens the viewport is wearing, and enough of its state to say how big the
  * world looks. `distance` is camera-to-target; `halfHeight` and `zoom` belong to the
