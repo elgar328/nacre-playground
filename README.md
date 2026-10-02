@@ -2,6 +2,8 @@
 
 **A browser playground for the [nacre](https://github.com/elgar328/nacre) CAD kernel.** Write a short TypeScript script, run it, and see the exact solid it builds.
 
+![Three example parts built in the playground](https://github.com/elgar328/nacre-playground/releases/download/assets/showcase.png)
+
 - **Nothing runs on a server.** The kernel and [nacre-kit](https://github.com/elgar328/nacre-kit) are compiled to WebAssembly, so every model is built right in the page.
 - **Code-CAD in a few lines.** Start from boxes, cylinders or pen sketches, then extrude, transform, combine with booleans, and pad or pocket faces.
 - **Pick by appearance, keep the exact reference.** A selector such as `faces().filter(...)` chooses by coordinates, but the script records which face or vertex it chose, not where it was.

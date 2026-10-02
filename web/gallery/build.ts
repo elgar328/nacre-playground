@@ -1,0 +1,45 @@
+// Run every example in ../examples, render a thumbnail of what it draws, and write the
+// images and a manifest to the output directory (default: gallery/out).
+//
+//   npm run gallery [-- out-dir]
+//
+// An example is `examples/NNN.ts`: the number is its identity (`?example=N`), so adding one
+// is saving the next number. Numbers are never reused, so a link to one stays valid.
+
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { sceneOf } from "./run";
+import { render } from "./render";
+import { encodePng } from "./png";
+
+const EXAMPLES = join(__dirname, "../../examples");
+const OUT = process.argv[2] ?? join(__dirname, "out");
+const WIDTH = 640;
+const HEIGHT = 480;
+
+interface Entry {
+  id: number;
+  ok: boolean;
+  message?: string;
+  ms: number;
+}
+
+mkdirSync(OUT, { recursive: true });
+const entries: Entry[] = [];
+for (const file of readdirSync(EXAMPLES).filter((f) => /^\d+\.ts$/.test(f)).sort()) {
+  const id = Number(basename(file, ".ts"));
+  const t0 = performance.now();
+  const scene = sceneOf(readFileSync(join(EXAMPLES, file), "utf8"));
+  const entry: Entry = { id, ok: scene.ok, ms: 0 };
+  if (scene.ok) {
+    const rgba = render(scene.meshes, scene.view, WIDTH, HEIGHT);
+    writeFileSync(join(OUT, `${id}.png`), encodePng(rgba, WIDTH, HEIGHT));
+  } else {
+    entry.message = scene.message;
+  }
+  entry.ms = Math.round(performance.now() - t0);
+  entries.push(entry);
+  console.log(`${entry.ok ? "ok  " : "FAIL"} ${id} (${entry.ms} ms)${entry.message ? ` — ${entry.message}` : ""}`);
+}
+writeFileSync(join(OUT, "manifest.json"), JSON.stringify(entries, null, 2));
+if (entries.some((e) => !e.ok)) process.exitCode = 1;
