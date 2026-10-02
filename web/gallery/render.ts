@@ -167,6 +167,8 @@ function camera(points: V3[], view: ViewSpec, w: number, h: number): Camera {
       x0 = Math.min(x0, sx); x1 = Math.max(x1, sx);
       y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
     }
+    // Nothing in front of the camera, or a model with no extent: keep the framing as is.
+    if (!Number.isFinite(x0) || x1 - x0 + (y1 - y0) < 1e-9) break;
     const mx = (x0 + x1) / 2;
     const my = (y0 + y1) / 2;
     const ext = Math.max((x1 - x0) / 2, (y1 - y0) / 2) / (1 - MARGIN);
@@ -377,6 +379,15 @@ export function render(
     const [a, b, c] = s as Screen[];
     const flat = norm(cross(sub(f.p[1], f.p[0]), sub(f.p[2], f.p[0])));
     triangle(t, a, b, c, (i, d, wa, wb, wc) => {
+      // Screen-space weights are affine in an orthographic view; in a perspective one the
+      // attributes are interpolated in 1/z, which `d = −1/z` carries.
+      if (!cam.ortho) {
+        const pa = -wa * a.d, pb = -wb * b.d, pc = -wc * c.d;
+        const sum = pa + pb + pc;
+        wa = pa / sum;
+        wb = pb / sum;
+        wc = pc / sum;
+      }
       const n = norm([0, 1, 2].map((k) => wa * f.n[0][k] + wb * f.n[1][k] + wc * f.n[2][k]) as V3);
       const p: V3 = [0, 1, 2].map((k) => wa * f.p[0][k] + wb * f.p[1][k] + wc * f.p[2][k]) as V3;
       const v = cam.ortho ? scale(cam.forward, -1) : norm(sub(cam.eye, p));

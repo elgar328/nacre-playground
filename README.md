@@ -2,7 +2,9 @@
 
 **A browser playground for the [nacre](https://github.com/elgar328/nacre) CAD kernel.** Write a short TypeScript script, run it, and see the exact solid it builds.
 
-![Three example parts built in the playground](https://github.com/elgar328/nacre-playground/releases/download/assets/showcase.png)
+**[Open the playground](https://elgar328.github.io/nacre-playground/)** · [Example gallery](https://elgar328.github.io/nacre-playground/gallery/)
+
+[![Three example parts built in the playground](https://github.com/elgar328/nacre-playground/releases/download/assets/showcase.png)](https://elgar328.github.io/nacre-playground/gallery/)
 
 - **Nothing runs on a server.** The kernel and [nacre-kit](https://github.com/elgar328/nacre-kit) are compiled to WebAssembly, so every model is built right in the page.
 - **Code-CAD in a few lines.** Start from boxes, cylinders or pen sketches, then extrude, transform, combine with booleans, and pad or pocket faces.
