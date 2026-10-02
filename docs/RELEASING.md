@@ -2,7 +2,7 @@
 
 How the playground's public pieces are published: the **site** on GitHub Pages (the app and
 the example gallery) and the **showcase image** in the README. The playground has no version
-releases and is not published to any registry.
+releases and is not published to any registry. Every command below runs in `web/`.
 
 ## What is published, and from where
 
@@ -29,19 +29,23 @@ An example is a script in `examples/`, named by a number: `001.ts`, `002.ts`, �
 - **Adding one** is saving the next number. Nothing else needs editing: the app bundles every
   file in `examples/`, the gallery renders each one, and the test suite runs, type-checks and
   marks each one (`web/tests/examples.ts`).
-- An example is a plain playground script — what you would paste into the editor. It may set
-  `style(...)` and `view(...)`; the thumbnail honours the colours, edges and view direction.
+- An example is a plain playground script, the same thing you would paste into the editor.
+  It may set `style(...)` and `view(...)`. The thumbnail keeps the colours, the edges, and the
+  view's direction and projection, but frames the model on its own: `at` and `zoom` do not
+  apply to it.
 
 ## The site
-
-Everything below runs in `web/`.
 
 ### Build and preview locally
 
 ```sh
-npm run site           # build the whole site into web/site
+npm run gallery        # only the gallery, into web/gallery/out: a quick look after editing an example
+npm run site           # the whole site, into web/site
 npm run site:preview   # serve web/site at http://localhost:4173
 ```
+
+`npm run gallery` uses the WebAssembly already built, so run `npm run wasm:test` first if nacre
+or nacre-kit changed.
 
 `npm run site` does three things in order: both WebAssembly builds (`npm run wasm:all`), the
 app (`vite build` into `site/`), and the gallery (`vite-node gallery/build.ts site/gallery`),
@@ -49,8 +53,8 @@ which runs every example and writes `site/gallery/` — one PNG per example, `ma
 and `index.html`.
 
 The local build uses the nacre and nacre-kit **checked out beside this repository, as they
-are**, uncommitted changes included. That makes it the way to see a kernel change in the app
-and the gallery before pushing anything.
+are**, uncommitted changes included. Use it to see a kernel change in the app and the
+gallery before pushing anything.
 
 - To open the preview on another device (a phone on the same tailnet), bind it to that
   address: `npx vite preview --outDir site --host <address>`.
@@ -64,9 +68,10 @@ A failed example does **not** stop the build or the deploy. It becomes a red car
 gallery page with the script's or the kernel's own sentence, and the page header counts the
 failures. The CI run's summary lists each example with ✅ or ❌.
 
-The test suite is what refuses a failing example (`npm test`, in "the examples"). So a change
-in the playground that breaks an example fails its tests; a change in nacre or nacre-kit that
-breaks one shows up on the next deploy as a red card.
+It is the test suite that refuses a failing example: `npm test` runs every one ("the
+examples" in `tests/selectors.test.ts`). So a change in the playground that breaks an example
+fails its tests, and a change in nacre or nacre-kit that breaks one shows up as a red card on
+the next deploy.
 
 ### Deploy automatically (CI)
 
@@ -105,13 +110,31 @@ npm run showcase -- 3 1 4                                   # web/gallery/out/sh
 gh release upload assets gallery/out/showcase.png --clobber
 ```
 
-The arguments are example numbers, drawn left to right as 600 × 600 panels; the README shows
-the image at half size, so it stays sharp on high-density screens. `--clobber` replaces the
+The arguments are example numbers, drawn left to right as 600 × 600 panels. GitHub shows the
+image at about half that width, so it stays sharp on high-density screens. `--clobber` replaces the
 file under the same name. GitHub caches README images for a few minutes, so the new one can
 take a moment to appear.
 
 The `assets` release is not a version of the playground; leave it out of anything that lists
 versions, and never delete it — the README's link goes with it.
+
+## Where things are
+
+| Path | What it does |
+|---|---|
+| `examples/NNN.ts` | The example scripts |
+| `web/src/app/examples.ts` | Bundles the examples into the app and reads `?example=N` |
+| `web/gallery/run.ts` | Runs one example as the app does: script runtime, kit wasm (nodejs build), `collect` |
+| `web/gallery/render.ts` | The software renderer; the thumbnail's look (backdrop, shadow, edges, exposure) is `LOOK` |
+| `web/gallery/page.ts` | The gallery page's HTML |
+| `web/gallery/build.ts` | `npm run gallery`: every example to a PNG, `manifest.json` and `index.html` |
+| `web/gallery/showcase.ts` | `npm run showcase`: the README image |
+| `web/scripts/deploy.ts` | `npm run deploy`: `web/site` to the `gh-pages` branch |
+| `web/vite.config.ts` | Relative asset paths; lets the dev server read `examples/` |
+| `.github/workflows/pages.yml` | The CI build and deploy |
+
+The Node-side code (`gallery/`, `scripts/`) is type-checked by `npm run check` through
+`web/tsconfig.node.json`.
 
 ## Two WebAssembly builds
 

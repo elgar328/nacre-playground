@@ -146,13 +146,6 @@ const store = {
       /* ignore */
     }
   },
-  clear(): void {
-    try {
-      localStorage.removeItem(SCRIPT_KEY);
-    } catch {
-      /* ignore */
-    }
-  },
 };
 
 async function main() {
@@ -282,6 +275,8 @@ async function main() {
 
   const asked = requestedExample(location.search);
   let example = asked === null ? null : await exampleSource(asked);
+  // A number with no example behind it opens the author's own script, so the link goes.
+  if (asked !== null && example === null) history.replaceState(null, "", location.pathname);
   editor = makeEditor(document.getElementById("editor")!, example ?? store.read() ?? "", doRun);
   // Typing is the whole task while it lasts: give the editor every pixel the phone
   // has left once the keyboard is up (a no-op on the desktop).
