@@ -77,13 +77,18 @@ describe("plane forms and their honest limits", () => {
     expect(out.ok).toBe(true);
   });
 
-  it("a tilted plane extrudes forward only, with the swap guidance", () => {
-    const { out } = runScript(`
+  it("a tilted plane extrudes either way; a range off it is told where to start", () => {
+    const back = runScript(`
       let p = plane({ origin: [0,0,0], xPoint: [1,0,1], yHint: [0,1,0] });
       extrude(sketch(p).rect([0, 0], [1, 1]), -1);
     `);
+    expect(back.out.ok).toBe(true);
+    const { out } = runScript(`
+      let p = plane({ origin: [0,0,0], xPoint: [1,0,1], yHint: [0,1,0] });
+      extrude(sketch(p).rect([0, 0], [1, 1]), [-1, 1]);
+    `);
     expect(out.ok).toBe(false);
-    expect(out.message).toContain("xPoint and yHint swapped");
+    expect(out.message).toContain("where the range starts");
   });
 });
 

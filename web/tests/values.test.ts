@@ -312,17 +312,17 @@ describe("the app's own colours are colours by its own rule", () => {
 
 // The kit's words, arriving. Everywhere else the app drives pad and pocket only down the
 // success road (`bodies`, `selectors`, `docs`), so this is the one end-to-end check of
-// what a person is told when one refuses — a sentence, not just `PocketNotBlind`, the
+// what a person is told when one refuses — a sentence, not just `NonPlanarFace`, the
 // Rust variant's name.
 describe("an operation's refusal reaches the panel in words", () => {
-  // Four thick, asked to pocket four deep: the obvious first try at a hole.
-  const THROUGH = `let a = cuboid({ size: [10, 10, 4] });
-let top = a.faces().maxBy((f) => f.center.z);
-pocket(top, sketch(XY).circle({ center: [0, 0], r: 2 }), 4);
+  // A boss asked for on a cylinder's side: the face a sketch stands on has to be flat.
+  const CURVED = `let c = cylinder({ r: 4, h: 4 });
+let side = c.faces().maxBy((f) => (f.normal ? 0 : 1));
+pad(side, sketch(XY).circle({ center: [0, 0], r: 1 }), 1);
 `;
 
   it("the message is a sentence, and still carries the handle to search with", () => {
-    const script = executeScript(THROUGH, queries);
+    const script = executeScript(CURVED, queries);
     expect(script.ok, script.ok ? "" : script.message).toBe(true);
     if (!script.ok) return;
     const out = wasm.run(script.steps, undefined) as RunErr | RunOk;
@@ -330,11 +330,11 @@ pocket(top, sketch(XY).circle({ center: [0, 0], r: 2 }), 4);
     if (out.ok) return;
     const sum = summarize(runFacts({ script, out }));
     const message = sum.header.find((r) => r.text.startsWith("Message"))?.text.slice(14);
-    expect(message).toContain("has to stop inside the material");
-    expect(message).toContain("[PocketNotBlind]");
+    expect(message).toContain("a sketch stands on a flat face");
+    expect(message).toContain("[NonPlanarFace]");
     // And the place is still named — the sentence is not standing in for the row.
     expect(sum.header.find((r) => r.text.startsWith("Where"))?.text.slice(14)).toBe(
-      "line 3 — pocket",
+      "line 3 — pad",
     );
   });
 });
