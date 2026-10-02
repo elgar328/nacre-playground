@@ -38,4 +38,7 @@ for (const file of readdirSync(EXAMPLES).filter((f) => /^\d+\.ts$/.test(f)).sort
 }
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(entries, null, 2));
 writeFileSync(join(OUT, "index.html"), galleryPage(entries, join(__dirname, "../../..")));
-if (entries.some((e) => !e.ok)) process.exitCode = 1;
+// A failed example does not fail the build: the site still deploys, and the failure is a
+// red card on the gallery page. The test suite is what refuses a failing example.
+const failed = entries.filter((e) => !e.ok).length;
+if (failed) console.log(`${failed} of ${entries.length} examples failed`);

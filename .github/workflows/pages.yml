@@ -1,0 +1,75 @@
+# Builds the site (the app and the example gallery) from the main branches of nacre,
+# nacre-kit and this repository, checked out side by side as the path dependencies expect,
+# and deploys it to the gh-pages branch. See docs/RELEASING.md.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *" # daily, to pick up changes in nacre and nacre-kit
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: write # push the gh-pages branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: nacre-playground
+      - uses: actions/checkout@v5
+        with:
+          repository: elgar328/nacre
+          path: nacre
+      - uses: actions/checkout@v5
+        with:
+          repository: elgar328/nacre-kit
+          path: nacre-kit
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nacre-playground/wasm
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nacre-playground/web/package-lock.json
+
+      - name: Build the site
+        working-directory: nacre-playground/web
+        run: |
+          npm ci
+          npm run site
+
+      - name: Deploy to gh-pages
+        working-directory: nacre-playground
+        env:
+          DEPLOY_REMOTE: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: scripts/deploy-gh-pages.sh
+
+      - name: Summary
+        if: always()
+        working-directory: nacre-playground/web
+        run: |
+          {
+            echo "### Gallery"
+            echo
+            echo "Built from nacre $(git -C ../../nacre rev-parse --short HEAD), nacre-kit $(git -C ../../nacre-kit rev-parse --short HEAD), nacre-playground $(git rev-parse --short HEAD)."
+            echo
+            node -e 'const m=require("./site/gallery/manifest.json");for(const e of m)console.log(`- ${e.ok?"✅":"❌"} Example ${e.id}${e.ok?"":" — "+e.message}`)' || echo "(no manifest)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -28,6 +28,8 @@ npm run dev
 
 `npm test` runs the tests and `npm run check` type-checks the app. The browser and the tests each load their own WebAssembly build, so rerun `npm run wasm:all` whenever the kernel or the kit changes.
 
+Adding an example, previewing the site and publishing it are described in [docs/RELEASING.md](docs/RELEASING.md).
+
 ## License
 
 Licensed under either MIT or Apache-2.0, at your option.
