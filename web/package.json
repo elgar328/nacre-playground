@@ -12,11 +12,12 @@
     "wasm:test": "wasm-pack build ../wasm --dev --target nodejs --out-dir ../web/src/wasm/pkg-node",
     "wasm:all": "npm run wasm && npm run wasm:test",
     "test": "vitest run",
-    "check": "tsc --noEmit && tsc --noEmit -p gallery",
+    "check": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "gallery": "vite-node gallery/build.ts",
     "showcase": "vite-node gallery/showcase.ts --",
     "site": "npm run wasm:all && vite build --outDir site --emptyOutDir && vite-node gallery/build.ts site/gallery",
-    "site:preview": "vite preview --outDir site"
+    "site:preview": "vite preview --outDir site",
+    "deploy": "vite-node scripts/deploy.ts --"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.2",

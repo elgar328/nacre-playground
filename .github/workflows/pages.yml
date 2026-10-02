@@ -55,12 +55,12 @@ jobs:
           npm run site
 
       - name: Deploy to gh-pages
-        working-directory: nacre-playground
+        working-directory: nacre-playground/web
         env:
           DEPLOY_REMOTE: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-        run: scripts/deploy-gh-pages.sh
+        run: npm run deploy
 
       - name: Summary
         if: always()

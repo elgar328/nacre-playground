@@ -79,7 +79,7 @@ breaks one shows up on the next deploy as a red card.
 
 The job checks out the three repositories side by side, installs Rust with the
 `wasm32-unknown-unknown` target, wasm-pack and Node 22, runs `npm ci && npm run site`, and
-then `scripts/deploy-gh-pages.sh` with a token in `DEPLOY_REMOTE`. After a change in nacre or
+then `npm run deploy` with a token in `DEPLOY_REMOTE`. After a change in nacre or
 nacre-kit that should reach the site now rather than tomorrow, run it by hand.
 
 Check a run with `gh run list --workflow pages.yml -L 3` and `gh run view <id>`.
@@ -87,9 +87,9 @@ Check a run with `gh run list --workflow pages.yml -L 3` and `gh run view <id>`.
 ### Deploy by hand (local)
 
 ```sh
-cd web && npm run site && cd ..
-scripts/deploy-gh-pages.sh --dry-run   # show what would be deployed, push nothing
-scripts/deploy-gh-pages.sh
+npm run site
+npm run deploy -- --dry-run   # show what would be deployed, push nothing
+npm run deploy
 ```
 
 This publishes **your local build**, including uncommitted changes in any of the three
