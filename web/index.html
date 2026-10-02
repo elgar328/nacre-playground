@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Nacre Playground</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #16181d;
+        --panel: #1d2026;
+        --border: #2a2e36;
+        --text: #d6d9de;
+        --dim: #8a8f98;
+        --accent: #4fc3f7;
+        --error: #ef5350;
+        /* Written by the sheet on a phone: where its top edge sits, in the same
+           coordinates a fixed element is placed in. The default only covers the frame
+           before the script runs. */
+        --sheet-top: 70%;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; height: 100dvh; margin: 0; }
+      body {
+        display: flex; flex-direction: column;
+        background: var(--bg); color: var(--text);
+        overscroll-behavior: none;
+        font: 13px/1.5 -apple-system, "Segoe UI", sans-serif;
+      }
+      /* Dragging the pane edge must not pick up text on the way. `#editor` grants
+         selection back (below), so the grant has to be revoked for the drag too —
+         the body-level rule alone does not reach it. */
+      body.resizing { cursor: col-resize; }
+      body.resizing,
+      body.resizing #editor {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* **Selection is opt-in.** Blocking the chrome piece by piece is not enough:
+         a drag that begins in the editor still runs up into the title and the Run button,
+         because a selection extending from outside crosses a `user-select: none` region
+         in Safari rather than stopping at it. Denying it everywhere and granting it back
+         where there is text worth taking is both shorter and the thing actually meant.
+
+         Granted: the editor and the cheat sheet (reading material). Everything else —
+         the 3D view, the grip, the buttons, the resize edge — has nothing to copy.
+
+         The status line is **not** granted, though its text is the one bit of chrome
+         worth pasting. It sits directly under the title, so granting it puts a
+         selectable strip in the path of every upward drag out of the editor — which is
+         the complaint this rule exists to answer. Copyable output belongs in a panel
+         built for reading, and that is where the grant should go when there is one. */
+      body {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #editor,
+      #cheat,
+      #output {
+        -webkit-user-select: text;
+        user-select: text;
+      }
+
+      .btn {
+        background: var(--accent); color: #10222c; border: 0; border-radius: 4px;
+        padding: 4px 14px; font: inherit; font-weight: 600; cursor: pointer;
+      }
+      .btn:hover { filter: brightness(1.1); }
+      .btn.ghost { background: transparent; color: var(--dim); padding: 4px 8px; }
+      .btn.ghost:hover { color: var(--text); }
+      /* Its panel is open. Deliberately a different colour from `:hover` rather than a
+         brighter one — if the open state were also white, hovering a shut panel's button
+         would look exactly like an open one, which is the confusion this exists to end.
+         It wins over `:hover` by coming after it at the same specificity. */
+      .btn.ghost[aria-pressed="true"] { color: var(--accent); }
+      /* The output button speaks for the panel: it carries the count, and it is how a
+         failure is noticed when the panel is shut (nothing opens itself — the picture a
+         failed run draws is worth more than a message that covers it).
+         Both toolbar icons are drawn rather than typed. A character is at the mercy of
+         whatever font the device falls back to — a typed ">_" looks like ASCII art, and
+         a typed "?" has the same problem less visibly: it changes shape from device to
+         device. Outlined container plus contents in both, so the
+         pair reads as one set. */
+      .btn.ghost.error { color: var(--error); }
+      #out, #help { display: inline-flex; align-items: center; gap: 5px; }
+      #out svg, #help svg {
+        display: block; width: 19px; height: 19px;
+        fill: none; stroke: currentColor; stroke-width: 1.35;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      /* An unbroken circle reads heavier than the terminal's rounded rectangle at the
+         same width, so it is drawn thinner to weigh the same — and the dot is filled
+         rather than a round line cap, which could only ever be one stroke wide. */
+      #help .ring { stroke-width: 1.1; }
+      #help .dot { fill: currentColor; stroke: none; }
+      #out .count { font: 600 11px/1 -apple-system, "Segoe UI", sans-serif; }
+      /* **No number, no slot.** The span is always there — the panel owns it and writes
+         `""` when nothing was printed — but an empty flex item still takes the row's `gap`,
+         which would give the console button a permanent 5px on its right, wider than the
+         `?` beside it, and the two icons would look unevenly spaced although the row's
+         gaps are equal. `:empty` is exactly "there is no number", and it belongs here: the
+         panel decides the content, the stylesheet decides whether content takes room. */
+      #out .count:empty { display: none; }
+      /* Filled in from the platform, so the markup does not ship ⌘ to every machine. Empty
+         until then, and it takes no room when it stays empty (a keyboard-less device). */
+      #run .hint:empty { display: none; }
+      /* Smaller than the word it stands beside, and said as a *ratio* rather than a
+         number: it is "the aside on this button", so it should follow the button's size
+         wherever that goes. On today's 13px it lands on 11 — the same small the count
+         badge uses, which is the toolbar's one step down and not a second one. */
+      #run .hint { margin-left: 5px; font-size: 0.85em; }
+
+      main { flex: 1; display: flex; min-height: 0; position: relative; }
+
+      /* The editor's home: the left pane on a desktop, a bottom sheet on a phone —
+         one block, two placements. The markup order is the phone's (the viewport is
+         the page underneath it); `order` gives the desktop its left-hand pane back
+         without moving the DOM. */
+      #sheet {
+        order: -1;
+        width: clamp(280px, var(--pane, 45%), 70vw);
+        display: flex; flex-direction: column; min-height: 0; background: var(--bg);
+      }
+      /* The toolbar: the app's face and its controls in one row — title on the left,
+         Run at the far right, next to the code it runs. On a phone this same block is
+         the sheet's grip, and its measured height is the sheet's `peek`. */
+      #grip {
+        padding: 6px 12px; border-bottom: 1px solid var(--border);
+        background: var(--panel);
+      }
+      #grip .bar { display: none; }
+      /* **No gap between the icons — they bring their own.** An icon button is padding
+         around a glyph, so a row gap sits on top of that padding and counts the space
+         twice; two glyphs 8 apart in a 0-gap row already read as separated, and the two
+         `?`-to-`Run` and console-to-`?` distances only look equal once the row stops
+         adding to one of them. Run is the exception because it is a *drawn* button: its
+         box needs air of its own, and that is the one margin below. */
+      #grip .row { display: flex; align-items: center; gap: 0; }
+      #grip .brand { margin-right: 4px; }
+      #grip #run { margin-left: 8px; }
+      /* The title takes the slack and gives it back: an item that cannot shrink
+         pushes the buttons off the end of a narrow screen — hence `min-width: 0` and the
+         ellipsis, which are what let it be a title rather than a label.
+         At 13px it would be a single step above the status line under it and *smaller
+         than the buttons beside it* (16px on a phone), so the app's own name would read
+         as a caption. */
+      #grip .brand {
+        flex: 1; min-width: 0; margin: 0;
+        font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      #grip .status {
+        margin-top: 4px; font-family: ui-monospace, monospace; font-size: 12px;
+        /* No `-webkit-line-clamp` here: the failure's message is the output panel's,
+           and what is left ("built in 234 ms", "FAILED in cut") is short by
+           construction. A clamp would also draw its own ellipsis — `FAILED in fuse…`
+           with nothing truncated, the box just saying so. */
+        display: flex; align-items: center; gap: 5px;
+        white-space: nowrap; overflow: hidden;
+      }
+      #editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      #editor .cm-editor { flex: 1; min-height: 0; }
+      #editor .cm-editor .cm-scroller { overflow: auto; font-size: 13px; }
+
+      /* The pane's edge: a flex item between the sheet and the viewport, so its
+         position needs no arithmetic. */
+      #edge {
+        order: -1; /* same as the sheet — DOM order then puts it after */
+        flex: 0 0 6px; position: relative; cursor: col-resize;
+        background: var(--border);
+      }
+      #edge::after { content: ""; position: absolute; inset: 0 -3px; }
+      #edge:hover { background: var(--accent); }
+
+      #viewport { flex: 1; position: relative; min-width: 0; }
+      #viewport canvas { display: block; }
+
+      /* The cheat sheet covers the 3D view and nothing else — the code stays visible
+         beside it on a desktop, and it uses the space above the sheet on a phone. */
+      /* The frame does not scroll — the close button lives here, so it stays put
+         however far the body is scrolled. */
+      #cheat, #output {
+        position: absolute; inset: 0; overflow: hidden;
+      }
+      #cheat-body, #output-body {
+        position: absolute; inset: 0; overflow: auto;
+        padding: 14px 16px 24px;
+      }
+      /* Not 0.975 — opaque in all but name. Same blur as the output panel; the alpha is
+         the one that differs, and it differs because this carries a dense reference
+         table read *instead* of the model rather than a few lines about it. */
+      #cheat {
+        z-index: 5;
+        background: rgba(29, 32, 38, 0.7);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      /* The blur is what makes this panel work, not the transparency. A model is not
+         a flat backdrop: one bright face behind a line kills it, and what this panel
+         carries is numbers, where a single unreadable glyph loses the meaning. Blurring
+         leaves the model as shape and colour and takes away only the detail that fights
+         the text. (Only these two numbers were tuned by eye; nothing derives them.) */
+      #output {
+        z-index: 6;
+        /* Tuned by eye, and the two knobs pull different ways: the alpha decides how
+           much of the model is there at all, the radius how much of its detail survives
+           to fight the text. A shorter radius keeps the shape readable as a shape. */
+        background: rgba(29, 32, 38, 0.5);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      #output .line {
+        font-family: ui-monospace, monospace; font-size: 12px;
+        white-space: pre-wrap; overflow-wrap: anywhere;
+        padding: 1px 0;
+      }
+      #output .line.dim { color: var(--dim); }
+      #output .line.err { color: var(--error); }
+      #output .rule { height: 1px; margin: 10px 0; background: var(--border); }
+      /* The run's own words. Same face as a printed line, plus a hanging indent: the
+         label owns the first 14 characters and a value too long for one line wraps to
+         where it started, so the table stays a table however narrow the panel gets. */
+      #output .row {
+        font-family: ui-monospace, monospace; font-size: 12px;
+        white-space: pre-wrap; overflow-wrap: anywhere;
+        padding-left: 14ch; text-indent: -14ch;
+      }
+      #output .row.err { color: var(--error); }
+      #output .row.dim { color: var(--dim); }
+      #cheat h2 {
+        margin: 18px 0 6px; font-size: 12px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent);
+      }
+      #cheat h2:first-of-type { margin-top: 0; }
+      /* One column at every width: the code, and its note beneath it. Not a two-column
+         table, on purpose — the note beside the code reads as a sliver once an example
+         runs long, and the stacked form reads better anyway. */
+      #cheat dl {
+        display: grid; grid-template-columns: minmax(0, 1fr);
+        gap: 2px; margin: 0;
+      }
+      #cheat dt { min-width: 0; }
+      #cheat dd { margin: 0 0 8px; color: var(--dim); }
+      #cheat code {
+        font-family: ui-monospace, monospace; font-size: 12px;
+        white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text);
+      }
+      #cheat .foot { margin: 22px 0 0; color: var(--dim); font-size: 12px; }
+      #cheat-restore { margin: 6px 0 0 -8px; text-decoration: underline; }
+      /* Above the body, which fills the frame and would otherwise paint over the
+         button and swallow its clicks. */
+      #cheat-close, #output-close {
+        position: absolute; top: 6px; right: 8px; z-index: 1;
+        font-size: 18px; line-height: 1;
+        background: rgba(29, 32, 38, 0.9); border-radius: 4px;
+      }
+      @media (max-width: 820px) {
+        /* One column on a narrow screen: the note goes under its example, and the
+           examples wrap rather than pushing the page sideways. (Wrapping is wrong in
+           the editor — indentation is how you scan code you are writing — and right
+           here, where a line scrolled out of sight is a line unread.) */
+      }
+
+      .status.error { color: var(--error); }
+      /* A failure is more than a colour change. The chip is the part that is seen
+         before it is read — and the output button turns red beside it, so both point
+         at the same place. */
+      /* A pill, sized off a fixed height rather than off the text's line box.
+         **Two things learned the hard way.** The face is the UI one, not the status
+         line's monospace: a badge is a label, not data — `#out .count` already made that
+         choice for the very same reason. And centring is `align-items`, not padding:
+         with `line-height: 1` the glyphs sit on their own baseline inside a box one em
+         tall, so all-caps text with no descenders leaves the spare descent at the bottom
+         and reads as too much room above. A 1px padding fudge would fix it for one font
+         — `ui-monospace` is a different font on every OS. */
+      .status .chip {
+        display: inline-flex; align-items: center;
+        height: 13px; padding: 0 6px; border-radius: 999px;
+        background: var(--error); color: #fff;
+        font: 700 9px/1 -apple-system, "Segoe UI", sans-serif;
+        letter-spacing: 0.06em;
+      }
+      .status.dim { color: var(--dim); }
+
+      @media (max-width: 820px) {
+        /* The sheet takes its share; the viewport keeps the rest — including the
+           space the keyboard claims, since the sheet floats above it. */
+        /* The viewport ends where the sheet begins. Both read one number, so they
+           cannot disagree — and it is measured from the visual viewport, which is the
+           only thing that knows where the keyboard starts. */
+        #viewport {
+          position: absolute; inset: 0 0 calc(100% - var(--sheet-top)) 0;
+          width: auto; height: auto;
+        }
+        #sheet {
+          position: fixed; left: 0; right: 0; top: 0; bottom: auto;
+          width: auto; z-index: 10;
+          border: 1px solid var(--border); border-bottom: 0;
+          border-radius: 14px 14px 0 0;
+          box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        #edge { display: none; }
+        /* While the keyboard is up the editor gets everything it can: the drag bar
+           and the status line stand down, leaving only the row with Run — which is
+           the one control still needed mid-edit (a phone keyboard has no Mod-Enter). */
+        .editing #grip { padding-bottom: 6px; }
+        .editing #grip .bar,
+        .editing #grip .status { display: none; }
+        /* 16px, and not one pixel less. iOS Safari zooms the whole page when a
+           text field smaller than 16px takes focus — the editor blew past the right
+           edge of the screen, took Run with it, and stayed zoomed after the keyboard
+           closed. The alternative (maximum-scale=1 in the viewport meta) buys the
+           same thing by taking pinch-zoom away from the user, which is worse. */
+        #editor .cm-editor .cm-scroller { font-size: 16px; }
+        /* The grip never shrinks. Were the sheet's height set to the grip's measured
+           height, border-box would take the safe-area padding and the borders out of
+           that, squeezing the grip — whose ResizeObserver then measures smaller, and the
+           sheet eats itself down to nothing. */
+        #grip { touch-action: none; cursor: grab; padding: 6px 12px 8px; flex: none; }
+        #grip .bar {
+          display: block; width: 40px; height: 4px; margin: 2px auto 8px;
+          background: var(--border); border-radius: 2px;
+        }
+        /* Thin to look at, thick to hit: the padding sets the target's width and the
+           pseudo-element carries its height out to ~44px.
+           **A reach sideways would need a gap to live in.** Two touch targets that
+           overlap hand their boundary silently to whichever button comes later, so a
+           horizontal reach is only safe where there is `2 × reach` of gap beside it — and
+           the row has no gap, on purpose. The width comes from the padding instead:
+           19 + 2 × 12 = 43, which is the same ~44 a reach would buy. Growing that
+           padding is how to make these easier to hit; growing the reach is not. */
+        #grip .btn { position: relative; padding: 5px 12px; }
+        #grip .btn::after { content: ""; position: absolute; inset: -9px 0; }
+        #grip .btn.ghost { padding: 5px 12px; font-size: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="viewport"></div>
+      <section id="sheet">
+        <div id="grip">
+          <div class="bar"></div>
+          <div class="row">
+            <h1 class="brand">Nacre Playground</h1>
+            <button class="btn ghost" id="out" title="script output" aria-label="script output">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="1.6" y="3" width="12.8" height="10" rx="2.2" />
+                <path d="M4.7 6.7 6.5 8 4.7 9.3" />
+                <path d="M8.6 10.1h2.9" />
+              </svg>
+            </button>
+            <button class="btn ghost" id="help" title="syntax cheat sheet" aria-label="syntax cheat sheet">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle class="ring" cx="8" cy="8" r="6.4" />
+                <path
+                  d="M6.35 6.1 C6.35 4.95 7.15 4.4 8.05 4.4
+                     C9 4.4 9.7 5.1 9.7 6
+                     C9.7 7.15 8 7.3 8 8.8"
+                />
+                <circle class="dot" cx="8" cy="10.9" r="0.85" />
+              </svg>
+            </button>
+            <button class="btn" id="run">Run&nbsp;<span class="hint"></span></button>
+          </div>
+          <div class="status dim" id="status">loading wasm…</div>
+        </div>
+        <div id="editor"></div>
+      </section>
+      <div id="edge" title="drag to resize"></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

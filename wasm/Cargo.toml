@@ -1,0 +1,27 @@
+[package]
+name = "nacre-playground-wasm"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/elgar328/nacre-playground"
+description = "The wasm boundary of nacre-playground: run a nacre-kit step log, query it, mesh it"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# The convenience layer — serial (rayon-free) build for wasm; the kit's own Cargo
+# handles the getrandom js backend for this target.
+nacre-kit = { path = "../../nacre-kit", default-features = false }
+nacre = { path = "../../nacre/crates/nacre", default-features = false }
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# The kernel's exact arithmetic benefits and the wire stays small.
+opt-level = 3
+lto = true

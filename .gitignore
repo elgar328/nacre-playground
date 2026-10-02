@@ -1,0 +1,7 @@
+/target
+/wasm/target
+node_modules/
+/web/dist
+/web/src/wasm/pkg
+/web/src/wasm/pkg-node
+/web/.vite-dev.log
