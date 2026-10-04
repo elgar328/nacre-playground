@@ -50,7 +50,7 @@ const histogram = (d: Map<string, number>) => {
 describe("drawn edges close", () => {
   it("a plain cylinder's rims are cycles, not chains", () => {
     run(`let c = cylinder({ d: 10, h: 20 });`);
-    // Two rims and nothing else: the seam is self-adjacent and deliberately not drawn.
+    // Two rims and nothing else: the lateral is bounded by them, with no seam edge.
     // Every point of a cycle is touched by exactly two segments; without the closing
     // segment this reads `[[1, 4], [2, 356]]` — one dangling end per rim end.
     expect(histogram(degrees(0, "edges"))).toEqual([[2, 360]]);
