@@ -457,14 +457,9 @@ pub fn edges_of(id: u32) -> JsValue {
     })
 }
 
-/// Every edge of the value's bodies, sampled, as pairs of points.
-///
-/// **An edge whose two carrier surfaces are the same one is not drawn.** The pair is
-/// "the surfaces of the two faces that use this edge", and planes are interned, so
-/// equal handles mean both faces lie on one plane — a seam left by a boolean across
-/// what is visually a single flat face, and a line there would be a lie. The same
-/// comparison drops a cylinder's seam, which the kernel spells self-adjacent for the
-/// same reason: it is where a surface meets itself, not a corner.
+/// Every edge of the value's bodies, sampled, as pairs of points. Every edge is drawn: an edge
+/// separates two faces' surfaces, and the kernel builds none that separates a surface from
+/// itself (a cylinder's side is bounded by its two rims, with no seam edge).
 fn edge_segments(
     model: &nacre::topo::Model,
     tess: &Tessellation,
@@ -483,9 +478,6 @@ fn edge_segments(
                             continue; // two faces share every edge
                         }
                         let edge = model.edge(he.edge);
-                        if edge.surfaces[0] == edge.surfaces[1] {
-                            continue; // not a corner: one surface meeting itself
-                        }
                         let Some(polyline) = tess.by_edge.get(&he.edge) else {
                             continue;
                         };
