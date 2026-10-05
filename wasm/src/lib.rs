@@ -2,8 +2,11 @@
 //!
 //! **Contract: the queries answer about the last successful `run`.** The TS runtime is
 //! the only caller and is single-threaded, so it guarantees the run→query order. The
-//! session cache is pure memoization — the kit's builds are deterministic (same steps,
-//! same model, bit for bit), so caching changes nothing observable except time.
+//! session cache is memoization — the kit's builds are deterministic (same steps,
+//! same model, bit for bit), so caching changes nothing observable except time — with one
+//! exception: [`export_step`] pays the kernel's export door, which may raise a cache from a
+//! construction figure to the nearest `f64` of the same truth, and the queries after it read the
+//! raised value. The mesh, once built, is kept; it is for viewing.
 //!
 //! The model never crosses the boundary. What crosses: a light summary per run
 //! (rendered set, copies, reports), report-grade query rows (`vertices_of`/`faces_of`
@@ -333,6 +336,89 @@ pub fn faces_of(id: u32) -> JsValue {
     })
 }
 
+/// The session's mesh, built on first use — once per session, over the whole reachable model
+/// (per-value meshes and files are walks over it) — with the build it was made from. The error is
+/// the `{ ok: false, message }` a query hands back when the tessellation refuses.
+fn session_mesh(session: &mut Session) -> Result<(&BuildOutput, &Tessellation), JsValue> {
+    if session.tess.is_none() {
+        match tessellate(&session.out.model, &TessConfig::default()) {
+            Ok(t) => session.tess = Some(t),
+            Err(e) => return Err(err_js(None, format!("tessellation refused: {e:?}"), None)),
+        }
+    }
+    let session: &Session = session;
+    Ok((&session.out, session.tess.as_ref().expect("just built")))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FileOk {
+    ok: bool,
+    text: String,
+    /// Caches the export door left at their construction figure (undecided or unrealized) — `0`
+    /// for every model the corpus builds; the app says so when it is not.
+    left: usize,
+}
+
+/// **The shown solids of the last run as a STEP file** — `{ ok: true, text, left }`, or
+/// `{ ok: false, message }` when the writer refuses; `null` with no session. "STEP" is the file
+/// format here, never a script step.
+///
+/// `timestamp` goes into the header verbatim: the kernel reads no clock (this target has none —
+/// asking the system for the time panics here), so the app passes its own.
+///
+/// The kit's export pays the kernel's export door first, which can raise the session model's
+/// caches (a construction figure to the nearest `f64` of the same truth); later queries read the
+/// raised values. The mesh is not rebuilt — it is for viewing.
+#[wasm_bindgen]
+pub fn export_step(timestamp: String) -> JsValue {
+    SESSION.with(|s| {
+        let mut s = s.borrow_mut();
+        let Some(session) = s.as_mut() else {
+            return JsValue::NULL;
+        };
+        match session.out.export_step(&timestamp) {
+            Ok(file) => {
+                let r = file.refine;
+                let left = r.vertices.left_undecided
+                    + r.vertices.left_unrealized
+                    + r.surfaces.left_undecided
+                    + r.surfaces.left_unrealized
+                    + r.edges.left_undecided
+                    + r.edges.left_unrealized;
+                to_js(&FileOk {
+                    ok: true,
+                    text: file.text,
+                    left,
+                })
+            }
+            Err(e) => err_js(None, format!("STEP export refused: {e:?}"), None),
+        }
+    })
+}
+
+/// **The shown solids of the last run as an OBJ file** — the same triangles the viewport draws
+/// (the session's mesh), each corner with its face's normal. `{ ok: true, text, left: 0 }`, or
+/// `{ ok: false, message }` when the tessellation refuses; `null` with no session.
+#[wasm_bindgen]
+pub fn export_obj() -> JsValue {
+    SESSION.with(|s| {
+        let mut s = s.borrow_mut();
+        let Some(session) = s.as_mut() else {
+            return JsValue::NULL;
+        };
+        let (out, tess) = match session_mesh(session) {
+            Ok(m) => m,
+            Err(e) => return e,
+        };
+        to_js(&FileOk {
+            ok: true,
+            text: tess.to_obj_solids(&out.model, &out.rendered_bodies()),
+            left: 0,
+        })
+    })
+}
+
 /// A triangle soup of a solid value of the last run: unindexed positions and per-**corner**
 /// normals as `Float32Array`s (the viewer draws it double-sided, so the winding carries no
 /// burden).
@@ -359,14 +445,11 @@ pub fn mesh_of(id: u32) -> JsValue {
         else {
             return JsValue::NULL;
         };
-        if session.tess.is_none() {
-            match tessellate(&session.out.model, &TessConfig::default()) {
-                Ok(t) => session.tess = Some(t),
-                Err(e) => return err_js(None, format!("tessellation refused: {e:?}"), None),
-            }
-        }
-        let tess = session.tess.as_ref().expect("just built");
-        let (positions, normals) = soup(&session.out.model, tess, &bodies);
+        let (out, tess) = match session_mesh(session) {
+            Ok(m) => m,
+            Err(e) => return e,
+        };
+        let (positions, normals) = soup(&out.model, tess, &bodies);
         let obj = js_sys::Object::new();
         let set = |k: &str, v: &[f32]| {
             js_sys::Reflect::set(
@@ -436,14 +519,11 @@ pub fn edges_of(id: u32) -> JsValue {
         else {
             return JsValue::NULL;
         };
-        if session.tess.is_none() {
-            match tessellate(&session.out.model, &TessConfig::default()) {
-                Ok(t) => session.tess = Some(t),
-                Err(e) => return err_js(None, format!("tessellation refused: {e:?}"), None),
-            }
-        }
-        let tess = session.tess.as_ref().expect("just built");
-        let positions = edge_segments(&session.out.model, tess, &bodies);
+        let (out, tess) = match session_mesh(session) {
+            Ok(m) => m,
+            Err(e) => return e,
+        };
+        let positions = edge_segments(&out.model, tess, &bodies);
         let obj = js_sys::Object::new();
         js_sys::Reflect::set(
             &obj,

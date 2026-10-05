@@ -77,6 +77,14 @@ export interface EdgesOk {
   positions: Float32Array;
 }
 
+/** A file's text, from one of the export doors. `left` counts what the kernel's export door
+ * left at its construction figure (STEP only; always `0` for an OBJ). */
+export interface FileOk {
+  ok: true;
+  text: string;
+  left: number;
+}
+
 export async function initWasm(): Promise<void> {
   await init();
 }
@@ -121,4 +129,16 @@ export function edgesOf(id: number): EdgesOk | RunErr | null {
 
 export function sketchOf(id: number): EdgesOk | null {
   return wasm.sketch_of(id) as EdgesOk | null;
+}
+
+/** The shown solids of the last run as STEP text — `null` with no run. "STEP" is the file
+ * format, not a script step. */
+export function exportStep(timestamp: string): FileOk | RunErr | null {
+  return wasm.export_step(timestamp) as FileOk | RunErr | null;
+}
+
+/** The shown solids of the last run as OBJ text — the viewport's own triangles, each corner with
+ * its face's normal; `null` with no run. */
+export function exportObj(): FileOk | RunErr | null {
+  return wasm.export_obj() as FileOk | RunErr | null;
 }

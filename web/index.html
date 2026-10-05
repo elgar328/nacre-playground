@@ -179,6 +179,33 @@
       #viewport { flex: 1; position: relative; min-width: 0; }
       #viewport canvas { display: block; }
 
+      /* The export icon sits in the viewport's own top-right corner, under the two panels
+         (z-index 5 and 6): an open panel covers it as it covers the model. Its menu drops
+         below it. `display` would beat the `hidden` attribute, so hidden is said again. */
+      #export {
+        position: absolute; top: 6px; right: 8px; z-index: 4;
+        display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+      }
+      #export[hidden], #export .menu[hidden] { display: none; }
+      #export > .btn { background: rgba(29, 32, 38, 0.6); border-radius: 4px; }
+      #export > .btn svg {
+        display: block; width: 19px; height: 19px;
+        fill: none; stroke: currentColor; stroke-width: 1.35;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      #export > .btn[aria-expanded="true"] { color: var(--accent); }
+      #export .menu {
+        display: flex; flex-direction: column; min-width: 76px; padding: 4px;
+        background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+      }
+      #export .menu .btn { color: var(--text); text-align: left; padding: 6px 12px; }
+      #export .menu .btn:hover { background: var(--border); }
+      /* A finger needs about 44px: 19px of icon (or a line of text) plus padding. */
+      @media (max-width: 820px) {
+        #export > .btn { padding: 12px; }
+        #export .menu .btn { padding: 13px 14px; }
+      }
+
       /* The cheat sheet covers the 3D view and nothing else — the code stays visible
          beside it on a desktop, and it uses the space above the sheet on a phone. */
       /* The frame does not scroll — the close button lives here, so it stays put

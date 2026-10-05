@@ -337,3 +337,24 @@ export function summarize(run: RunFacts): Summary {
     failed: true,
   };
 }
+
+/** **What a file write leaves in the panel** — `null` when there is nothing to say: the file
+ * was written and every value in it is the nearest `f64` of the exact geometry.
+ *
+ * Said in the panel as one more row of the run's table, because the file is of that run. A
+ * refusal is in the error voice; a file whose export door left values at their construction
+ * figure is an aside — the file is fine to use, only not exact to the last bit there. */
+export function exportWords(
+  label: string,
+  result: { ok: true; left: number } | { ok: false; message: string } | null,
+): Row | null {
+  if (result === null) return row("Export", `${label}: there is no run to write`, "err");
+  if (!result.ok) return row("Export", `${label} not written: ${result.message}`, "err");
+  if (result.left === 0) return null;
+  const values = result.left === 1 ? "1 value stands" : `${result.left} values stand`;
+  return row(
+    "Export",
+    `${label} written; ${values} at the figure its construction gave — the kernel could not settle the exact one`,
+    "dim",
+  );
+}

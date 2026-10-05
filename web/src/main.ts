@@ -3,6 +3,8 @@
 import {
   bodiesOf,
   edgesOf,
+  exportObj,
+  exportStep,
   facesOf,
   initWasm,
   meshOf,
@@ -13,9 +15,10 @@ import {
 } from "./api/bridge";
 import { exampleSource, requestedExample } from "./app/examples";
 import { BLAME, collect } from "./app/draw";
-import { runFacts, showingWords, summarize } from "./app/summary";
+import { exportWords, runFacts, showingWords, summarize } from "./app/summary";
 import type { Ending, Summary } from "./app/summary";
 import { makeCheatPanel } from "./app/cheat";
+import { exportable, makeExportMenu, stepStamp } from "./app/export";
 import { makeOutputPanel } from "./app/output";
 import type { OutputPanel } from "./app/output";
 import { makeEditor, runHint } from "./app/editor";
@@ -98,6 +101,10 @@ let outputPanel: OutputPanel | null = null;
 
 const statusEl = document.getElementById("status")!;
 
+/** The last run's own account — kept so a file written afterwards can add its row to the same
+ * table rather than replace it. */
+let lastSummary: Summary | null = null;
+
 /** Draw a run's own account of itself. **Nothing is composed here** — `summarize()` owns
  * every word, so the status line and the panel cannot come to disagree about the same run
  * (`output.ts` makes that argument for its own content; this would be the other place). */
@@ -116,6 +123,7 @@ const show = (s: Summary) => {
   statusEl.appendChild(words);
   statusEl.className = `status ${s.failed ? "error" : "dim"}`;
   outputPanel?.setHeader(s.header, s.failed);
+  lastSummary = s;
 };
 
 /** The one thing that is not a run: wasm would not load, or the page could not be built.
@@ -188,6 +196,28 @@ async function main() {
     outputPanel!.close();
     cheat.toggle();
   });
+
+  // Files of what the viewport shows. The words about a write are `summary.ts`'s; they join
+  // the run's table, and a refusal turns the output button red like any failure does.
+  const exportMenu = makeExportMenu(
+    viewportEl,
+    [
+      {
+        label: "STEP",
+        file: "nacre-playground.step",
+        write: () => exportStep(stepStamp(new Date())),
+      },
+      { label: "OBJ", file: "nacre-playground.obj", write: exportObj },
+    ],
+    (label, result) => {
+      const words = exportWords(label, result);
+      if (!words || !lastSummary) return;
+      outputPanel!.setHeader(
+        [...lastSummary.header, words],
+        lastSummary.failed || words.kind === "err",
+      );
+    },
+  );
 
   await initWasm();
 
@@ -266,8 +296,10 @@ async function main() {
       cheat.close();
       return { script, out, drawn, ms };
     })();
-    const sum = summarize(runFacts(ending));
+    const facts = runFacts(ending);
+    const sum = summarize(facts);
     show(sum);
+    exportMenu.setAvailable(exportable(facts));
     // The result is what you pressed Run to see; a failure sends you back to the code
     // that needs fixing.
     sheet.goTo(sum.failed ? "half" : "peek");
