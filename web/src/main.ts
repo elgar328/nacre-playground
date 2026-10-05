@@ -203,14 +203,15 @@ async function main() {
     viewportEl,
     [
       {
-        label: "STEP",
+        label: "Download STEP",
+        name: "STEP",
         file: "nacre-playground.step",
         write: () => exportStep(stepStamp(new Date())),
       },
-      { label: "OBJ", file: "nacre-playground.obj", write: exportObj },
+      { label: "Download OBJ", name: "OBJ", file: "nacre-playground.obj", write: exportObj },
     ],
-    (label, result) => {
-      const words = exportWords(label, result);
+    (format, result) => {
+      const words = exportWords(format.name, result, format.done);
       if (!words || !lastSummary) return;
       outputPanel!.setHeader(
         [...lastSummary.header, words],

@@ -112,4 +112,17 @@ describe("export menu rules", () => {
     expect(exportWords("STEP", { ok: false, message: "no" })?.kind).toBe("err");
     expect(exportWords("OBJ", null)?.kind).toBe("err");
   });
+
+  it("names the format and says what happened to it", () => {
+    const words = (...a: Parameters<typeof exportWords>) => exportWords(...a)?.text;
+    expect(words("STEP", { ok: false, message: "no" })).toMatch(/^Export +STEP not written: no$/);
+    const opened = "opened in step-loupe";
+    expect(words("STEP", { ok: false, message: "no" }, opened)).toMatch(
+      /^Export +STEP not opened in step-loupe: no$/,
+    );
+    expect(words("STEP", { ok: true, left: 1 }, opened)).toMatch(
+      /^Export +STEP opened in step-loupe; 1 value stands /,
+    );
+    expect(words("STEP", { ok: true, left: 0 }, opened)).toBeUndefined();
+  });
 });

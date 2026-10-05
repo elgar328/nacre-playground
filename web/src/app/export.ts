@@ -1,7 +1,7 @@
 // The export menu — the run the viewport shows, written to a file.
 //
-// One icon at the viewport's top right; it opens a small menu with one button per format, and a
-// button writes that file and closes the menu. **The files are the kernel's**: wasm hands back
+// One icon at the viewport's top right; it opens a small menu with one button per door, and a
+// button hands that file over — a download, or another app — and closes the menu. **The files are the kernel's**: wasm hands back
 // text (`exportStep`, `exportObj`) and this module only turns text into a download — the app
 // never touches geometry, so a better writer in the kernel reaches the file with no change here.
 //
@@ -32,11 +32,17 @@ export function stepStamp(at: Date): string {
 export type FileResult = FileOk | RunErr | null;
 
 export interface ExportFormat {
-  /** The button's word, and the format's name in any sentence about it. */
+  /** The button's words: what it does, and to what — `Download STEP`. */
   label: string;
-  /** The download's file name. */
+  /** The format's name in any sentence about it — `STEP`. */
+  name: string;
+  /** What happened to the file, in those sentences; `written` when left out. */
+  done?: string;
+  /** The file's name. */
   file: string;
   write: () => FileResult;
+  /** Where the text goes; a download when left out. Answers why it could not, or `null`. */
+  deliver?: (file: string, text: string) => string | null;
 }
 
 export interface ExportMenu {
@@ -46,11 +52,12 @@ export interface ExportMenu {
 }
 
 /** Build the icon and its menu inside `host` (the viewport). `onResult` hears every write —
- * the words about it are `summary.ts`'s (`exportWords`), not this module's. */
+ * the words about it are `summary.ts`'s (`exportWords`), not this module's. A door that could
+ * not take the text reaches it as a refusal. */
 export function makeExportMenu(
   host: HTMLElement,
   formats: ExportFormat[],
-  onResult: (label: string, result: FileResult) => void,
+  onResult: (format: ExportFormat, result: FileResult) => void,
 ): ExportMenu {
   const root = document.createElement("div");
   root.id = "export";
@@ -85,10 +92,13 @@ export function makeExportMenu(
     item.setAttribute("role", "menuitem");
     item.textContent = f.label;
     item.addEventListener("click", () => {
-      const result = f.write();
-      if (result?.ok) download(f.file, result.text);
+      let result = f.write();
+      if (result?.ok) {
+        const refused = (f.deliver ?? download)(f.file, result.text);
+        if (refused !== null) result = { ok: false, step: undefined, message: refused };
+      }
       close();
-      onResult(f.label, result);
+      onResult(f, result);
     });
     menu.appendChild(item);
   }
@@ -116,7 +126,7 @@ export function makeExportMenu(
 
 /** Hand `text` to the browser as a file called `name`. The object URL is revoked a moment
  * later rather than at once: Safari starts the download after the click returns. */
-function download(name: string, text: string): void {
+function download(name: string, text: string): null {
   const url = URL.createObjectURL(new Blob([text], { type: "application/octet-stream" }));
   const a = document.createElement("a");
   a.href = url;
@@ -125,4 +135,5 @@ function download(name: string, text: string): void {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return null;
 }
