@@ -6,7 +6,7 @@
 //! same model, bit for bit), so caching changes nothing observable except time — with one
 //! exception: [`export_step`] pays the kernel's export door, which may raise a cache from a
 //! construction figure to the nearest `f64` of the same truth, and the queries after it read the
-//! raised value. The mesh, once built, is kept; it is for viewing.
+//! raised value. A value's mesh, once built, is kept; it is for viewing.
 //!
 //! The model never crosses the boundary. What crosses: a light summary per run
 //! (rendered set, copies, reports), report-grade query rows (`vertices_of`/`faces_of`
@@ -15,9 +15,10 @@
 //! normal rather than its facet's.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 use nacre::store::Handle;
-use nacre::tess::{TessConfig, Tessellation, tessellate};
+use nacre::tess::{TessConfig, Tessellation, tessellate_solids};
 use nacre::topo::Solid;
 use nacre_kit::{BuildOutput, KitError, Step, ValueId, build};
 use serde::Serialize;
@@ -28,9 +29,11 @@ struct Session {
     /// so equality means "the same program".
     key: String,
     out: BuildOutput,
-    /// Lazily built on the first `mesh_of`, once per session (the tessellation covers
-    /// the whole reachable model; per-value meshes are walks over it).
-    tess: Option<Tessellation>,
+    /// Each value's mesh, built on the first `mesh_of` or `edges_of` that asks for it — of that
+    /// value's bodies only. The model also holds every intermediate a script made (the kit copies
+    /// before each consumption), and meshing all of them was paid on every run: a cylinder moved
+    /// 300 times took 529 ms native for one cylinder's triangles.
+    meshes: HashMap<u32, Tessellation>,
 }
 
 thread_local! {
@@ -218,7 +221,7 @@ pub fn run(steps: JsValue, upto: Option<usize>) -> JsValue {
             *s.borrow_mut() = Some(Session {
                 key,
                 out,
-                tess: None,
+                meshes: HashMap::new(),
             });
         });
     }
@@ -336,18 +339,24 @@ pub fn faces_of(id: u32) -> JsValue {
     })
 }
 
-/// The session's mesh, built on first use — once per session, over the whole reachable model
-/// (per-value meshes and files are walks over it) — with the build it was made from. The error is
-/// the `{ ok: false, message }` a query hands back when the tessellation refuses.
-fn session_mesh(session: &mut Session) -> Result<(&BuildOutput, &Tessellation), JsValue> {
-    if session.tess.is_none() {
-        match tessellate(&session.out.model, &TessConfig::default()) {
-            Ok(t) => session.tess = Some(t),
+/// A value's mesh, built on first use — of `bodies` (the value's) only — with the build it was made
+/// from. The error is the `{ ok: false, message }` a query hands back when the tessellation
+/// refuses.
+fn value_mesh<'s>(
+    session: &'s mut Session,
+    id: u32,
+    bodies: &[Handle<Solid>],
+) -> Result<(&'s BuildOutput, &'s Tessellation), JsValue> {
+    if !session.meshes.contains_key(&id) {
+        match tessellate_solids(&session.out.model, bodies, &TessConfig::default()) {
+            Ok(t) => {
+                session.meshes.insert(id, t);
+            }
             Err(e) => return Err(err_js(None, format!("tessellation refused: {e:?}"), None)),
         }
     }
-    let session: &Session = session;
-    Ok((&session.out, session.tess.as_ref().expect("just built")))
+    let session: &'s Session = session;
+    Ok((&session.out, &session.meshes[&id]))
 }
 
 #[derive(Serialize)]
@@ -397,25 +406,26 @@ pub fn export_step(timestamp: String) -> JsValue {
     })
 }
 
-/// **The shown solids of the last run as an OBJ file** — the same triangles the viewport draws
-/// (the session's mesh), each corner with its face's normal. `{ ok: true, text, left: 0 }`, or
+/// **The shown solids of the last run as an OBJ file** — meshed afresh, of the shown bodies only,
+/// each corner with its face's normal: the same triangles the viewport draws, since a face's mesh
+/// does not depend on what is meshed beside it. `{ ok: true, text, left: 0 }`, or
 /// `{ ok: false, message }` when the tessellation refuses; `null` with no session.
 #[wasm_bindgen]
 pub fn export_obj() -> JsValue {
     SESSION.with(|s| {
-        let mut s = s.borrow_mut();
-        let Some(session) = s.as_mut() else {
+        let s = s.borrow();
+        let Some(session) = s.as_ref() else {
             return JsValue::NULL;
         };
-        let (out, tess) = match session_mesh(session) {
-            Ok(m) => m,
-            Err(e) => return e,
-        };
-        to_js(&FileOk {
-            ok: true,
-            text: tess.to_obj_solids(&out.model, &out.rendered_bodies()),
-            left: 0,
-        })
+        let out = &session.out;
+        match tessellate_solids(&out.model, &out.rendered_bodies(), &TessConfig::default()) {
+            Ok(tess) => to_js(&FileOk {
+                ok: true,
+                text: tess.to_obj(&out.model),
+                left: 0,
+            }),
+            Err(e) => err_js(None, format!("tessellation refused: {e:?}"), None),
+        }
     })
 }
 
@@ -445,7 +455,7 @@ pub fn mesh_of(id: u32) -> JsValue {
         else {
             return JsValue::NULL;
         };
-        let (out, tess) = match session_mesh(session) {
+        let (out, tess) = match value_mesh(session, id, &bodies) {
             Ok(m) => m,
             Err(e) => return e,
         };
@@ -519,7 +529,7 @@ pub fn edges_of(id: u32) -> JsValue {
         else {
             return JsValue::NULL;
         };
-        let (out, tess) = match session_mesh(session) {
+        let (out, tess) = match value_mesh(session, id, &bodies) {
             Ok(m) => m,
             Err(e) => return e,
         };
