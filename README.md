@@ -9,7 +9,7 @@
 - **Nothing runs on a server.** The kernel and [nacre-kit](https://github.com/elgar328/nacre-kit) are compiled to WebAssembly, so every model is built right in the page.
 - **Code-CAD in a few lines.** Start from boxes, cylinders or pen sketches, then extrude, transform, combine with booleans, and pad or pocket faces.
 - **Pick by appearance, keep the exact reference.** A selector such as `faces().filter(...)` chooses by coordinates, but the script records which face or vertex it chose, not where it was.
-- **Take the part with you.** The export button in the top-right corner of the view writes what is shown as STEP or OBJ. The kernel writes both files; the OBJ carries each face's exact normal, so cylinders shade round and edges stay sharp.
+- **Take the part with you.** The export button in the top-right corner of the view writes what is shown as STEP or OBJ, or opens it in [step-loupe](https://github.com/elgar328/step-loupe) to inspect the STEP file. The kernel writes both files; the OBJ carries each face's exact normal, so cylinders shade round and edges stay sharp.
 
 ## Status
 

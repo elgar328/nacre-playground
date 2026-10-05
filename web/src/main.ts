@@ -19,6 +19,7 @@ import { exportWords, runFacts, showingWords, summarize } from "./app/summary";
 import type { Ending, Summary } from "./app/summary";
 import { makeCheatPanel } from "./app/cheat";
 import { exportable, makeExportMenu, stepStamp } from "./app/export";
+import { handOver, loupeReachable } from "./app/loupe";
 import { makeOutputPanel } from "./app/output";
 import type { OutputPanel } from "./app/output";
 import { makeEditor, runHint } from "./app/editor";
@@ -209,6 +210,26 @@ async function main() {
         write: () => exportStep(stepStamp(new Date())),
       },
       { label: "Download OBJ", name: "OBJ", file: "nacre-playground.obj", write: exportObj },
+      // The same STEP, opened in step-loupe instead of saved — only where it shares this origin.
+      ...(loupeReachable(location.origin)
+        ? [
+            {
+              label: "Open in step-loupe",
+              name: "STEP",
+              done: "opened in step-loupe",
+              file: "nacre-playground.step",
+              write: () => exportStep(stepStamp(new Date())),
+              deliver: (file: string, text: string) =>
+                handOver(
+                  { storage: localStorage, open: (url) => window.open(url, "_blank") },
+                  crypto.randomUUID(),
+                  file,
+                  text,
+                  Date.now(),
+                ),
+            },
+          ]
+        : []),
     ],
     (format, result) => {
       const words = exportWords(format.name, result, format.done);
