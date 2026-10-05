@@ -40,7 +40,7 @@ describe("step-loupe hand-over", () => {
       text: "ISO-10303-21;",
       at: 1234,
     });
-    expect(b.opened).toEqual([`${LOUPE_URL}?from=a%20b`]);
+    expect(b.opened).toEqual([`${LOUPE_URL}?from=a%20b&up=z`]);
   });
 
   it("refuses, opening nothing, when the storage will not keep the file", () => {

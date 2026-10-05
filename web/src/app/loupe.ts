@@ -7,6 +7,10 @@
 // **The contract is step-loupe's**, written once beside its reader in step-loupe's
 // `src/index.html` ("optional hand-over from ?from=<id>"): the key's prefix, the value's shape,
 // the read-and-remove, the ten-minute sweep. This module only follows it.
+//
+// **`up=z` rides along.** STEP records no up direction and step-loupe opens Y-up, the way most
+// CADs write. nacre is Z-up — the side that knows it says it, so the part stands in step-loupe
+// as it stands here.
 
 /** Where step-loupe is served. The door is offered only on this origin — elsewhere (the dev
  * server, a local preview) the storage is not step-loupe's. */
@@ -47,7 +51,7 @@ export function handOver(
     // A full quota, or a private window that keeps no storage.
     return `the browser would not keep the file for it (${e instanceof Error ? e.name : String(e)})`;
   }
-  const url = `${LOUPE_URL}?from=${encodeURIComponent(id)}`;
+  const url = `${LOUPE_URL}?from=${encodeURIComponent(id)}&up=z`;
   if (browser.open(url) === null) {
     browser.storage.removeItem(key);
     return "the browser blocked the new tab";
