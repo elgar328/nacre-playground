@@ -15,7 +15,8 @@ import type { RunFacts } from "./summary";
  *
  * A failed run draws the prefix that did build, but the session behind it is that prefix's, not
  * the script's — a file of it would be a file of something the author did not finish. A run
- * that drew only sketches has no solid to write. */
+ * that drew only sketches has no solid to write. A run whose mesh was refused (`drawing`) shows
+ * nothing either, so the icon hides there too — although a STEP file needs no mesh. */
 export function exportable(facts: RunFacts): boolean {
   return facts.outcome === "ok" && facts.drawn.bodies > 0;
 }
