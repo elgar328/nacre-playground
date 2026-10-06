@@ -33,6 +33,12 @@ npm run dev
 
 Adding an example, previewing the site and publishing it are described in [docs/RELEASING.md](docs/RELEASING.md).
 
+## Analytics
+
+The hosted site uses [Umami](https://umami.is) for cookieless, privacy-friendly analytics.
+It records which pages are visited and which example a `?example=` link opens. The scripts
+you write are never recorded. A playground you build and run yourself has no analytics.
+
 ## License
 
 Licensed under either MIT or Apache-2.0, at your option.

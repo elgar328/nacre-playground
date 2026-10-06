@@ -8,7 +8,7 @@
 // GIT_AUTHOR_NAME / GIT_AUTHOR_EMAIL override the commit's author.
 
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -33,6 +33,16 @@ try {
   git(["init", "-q", "-b", "gh-pages"], dir);
   cpSync(site, dir, { recursive: true });
   writeFileSync(join(dir, ".nojekyll"), ""); // serve files as they are; no Jekyll processing
+  // Umami analytics goes into the hosted copy only: the source and a local build stay
+  // analytics-free. It follows the `<title>`, which both pages have; the gallery leaves its
+  // `<head>` tags out, so there is no `</head>` to place it before.
+  const snippet = readFileSync(join(__dirname, "analytics.html"), "utf8");
+  for (const page of ["index.html", join("gallery", "index.html")]) {
+    const file = join(dir, page);
+    const html = readFileSync(file, "utf8");
+    if (!html.includes("</title>")) throw new Error(`no </title> to inject after in ${page}`);
+    writeFileSync(file, html.replace("</title>", "</title>\n" + snippet));
+  }
   git(["add", "-A"], dir);
   git(["-c", `user.name=${name}`, "-c", `user.email=${email}`, "commit", "-q", "-m", `Deploy site from ${source}`], dir);
   if (dry) {
