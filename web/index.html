@@ -164,7 +164,20 @@
       }
       #editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
       #editor .cm-editor { flex: 1; min-height: 0; }
-      #editor .cm-editor .cm-scroller { overflow: auto; font-size: 13px; }
+      #editor .cm-editor .cm-scroller { overflow: auto; font-size: 13px; overscroll-behavior: contain; }
+      /* **A drag in the editor stays in the editor.** On an iPhone a drag that ran past
+         the editor's end carried on into the page: the page scrolled instead (319px with
+         the keyboard up), and every scroll step moved the sheet and resized the 3D view —
+         141 resizes, each clearing the canvas, in one drag. `contain` stops the hand-over,
+         but only on a box that can scroll; a script shorter than the editor could not, so
+         the content is kept one pixel taller than the box and the editor always can.
+         Measured on the phone: no page scroll and no resize in any drag, short script or
+         long, keyboard up or down. (`overflow: hidden` on the page did not stop it.)
+         The extra pixel is for a finger only: with a mouse it would buy nothing, and where
+         scrollbars always show it would put one on every short script. */
+      @media (pointer: coarse) {
+        #editor .cm-content { min-height: calc(100% + 1px); }
+      }
 
       /* The pane's edge: a flex item between the sheet and the viewport, so its
          position needs no arithmetic. */
@@ -219,9 +232,22 @@
       #cheat, #output {
         position: absolute; inset: 0; overflow: hidden;
       }
+      /* `contain` as in the editor: a drag past the end stays in the panel. */
       #cheat-body, #output-body {
-        position: absolute; inset: 0; overflow: auto;
+        position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain;
         padding: 14px 16px 24px;
+      }
+      /* …and, as in the editor, the panel must be able to scroll for `contain` to hold:
+         a run that printed two lines left the output panel with nothing to scroll, and a
+         drag on it moved the page (85px, 36 resizes of the 3D view, measured). The body's
+         rows are its own children, so instead of a taller content box an invisible strut
+         one pixel taller than the panel does it — an absolutely placed child still counts
+         towards what a scroll box can scroll. */
+      @media (pointer: coarse) {
+        #cheat-body::after, #output-body::after {
+          content: ""; position: absolute; top: 0; left: 0; width: 1px;
+          height: calc(100% + 1px); pointer-events: none;
+        }
       }
       /* Not 0.975 — opaque in all but name. Same blur as the output panel; the alpha is
          the one that differs, and it differs because this carries a dense reference
