@@ -100,7 +100,7 @@ describe("export menu rules", () => {
     expect(exportable(facts("drawing", 1))).toBe(false);
   });
 
-  it("stamps a header to the second, in the shape step-io writes", () => {
+  it("stamps a header to the second", () => {
     expect(stepStamp(new Date(Date.UTC(2026, 9, 5, 12, 34, 56, 789)))).toBe(
       "2026-10-05T12:34:56Z",
     );

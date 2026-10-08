@@ -21,9 +21,9 @@ export function exportable(facts: RunFacts): boolean {
   return facts.outcome === "ok" && facts.drawn.bodies > 0;
 }
 
-/** **The STEP header's time stamp for `at`** — ISO 8601 to the second, `2026-10-05T12:34:56Z`,
- * the shape step-io writes its own in. The kernel reads no clock (wasm has none), so the app
- * gives it; the header has never carried milliseconds. */
+/** **The STEP header's time stamp for `at`** — ISO 8601 to the second, `2026-10-05T12:34:56Z`.
+ * The kernel reads no clock (wasm has none), so the app gives it; the header carries no
+ * milliseconds. */
 export function stepStamp(at: Date): string {
   return at.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
