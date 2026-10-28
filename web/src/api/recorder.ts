@@ -542,7 +542,7 @@ export class BodyList {
 }
 
 export interface RotateOpts {
-  /** `unknown`, not `"center" | Vec3` — nothing typechecks a script, so a narrow type
+  /** `unknown`, not `Vec3` — nothing typechecks a script, so a narrow type
    * here would be a promise the runtime does not keep. It also makes the door below
    * *mandatory*: the step's field is typed, so skipping it will not compile. */
   pivot?: unknown;
@@ -551,8 +551,6 @@ export interface RotateOpts {
 function pivotOf(opts: RotateOpts | undefined, what: string): Pivot {
   onlyKeys(opts, ["pivot"], what);
   if (!opts || opts.pivot === undefined) return "Origin";
-  if (opts.pivot === "center") return "Center";
-  // After the one string that is legal here.
   return { At: point3(opts.pivot, `${what}'s pivot`) };
 }
 

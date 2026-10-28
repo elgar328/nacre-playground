@@ -459,6 +459,8 @@ describe("every value the app answers for before the wire", () => {
       [`${box}a.rotateX("30");`, `rotateX's angle is a number, got "30"`],
       // The typo that would otherwise die as a JavaScript exception.
       [`${box}rotateZ(a, 30, { pivot: "centre" });`, `rotateZ's pivot is a point like [0, 0, 0], got "centre"`],
+      // A solid's centre is a measurement, not a pivot — the same sentence.
+      [`${box}rotateZ(a, 30, { pivot: "center" });`, `rotateZ's pivot is a point like [0, 0, 0], got "center"`],
       [`${box}mirror(a, YZ, { offset: "3" });`, `mirror's offset is a number, got "3"`],
       [`plane(XY, { offset: "3" });`, `plane's offset is a number, got "3"`],
       [`plane(XY, { origin: [0, 0] });`, `plane's origin is a point like [0, 0, 0], got [0, 0]`],

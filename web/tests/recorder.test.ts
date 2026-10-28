@@ -116,7 +116,7 @@ describe("the recorder's wire shapes", () => {
   it("speaks the core vocabulary end to end", () => {
     const { out } = runScript(`
       let box = cuboid({ size: [10, 20, 5], corner: [0, 0, 0] });
-      let d = box.rotateY(90, { pivot: "center" });
+      let d = box.rotateY(90, { pivot: [5, 10, 2.5] });
       let e = rotateZ(d, 30, { pivot: [10, 10, 0] });
       let m = mirror(e, YZ);
       display(m, { color: "#ff0000", opacity: 0.5 });
@@ -312,7 +312,7 @@ describe("an options typo is named, not swallowed", () => {
   it("names the stray key and the call it was given to", () => {
     for (const [code, said] of [
       [`cuboid({ size: [1,1,1], centre: [0,0,0] });`, "cuboid does not take 'centre'"],
-      [`cuboid({ size: [1,1,1] }).rotateZ(30, { pivo: "center" });`, "rotateZ does not take 'pivo'"],
+      [`cuboid({ size: [1,1,1] }).rotateZ(30, { pivo: [0, 0, 0] });`, "rotateZ does not take 'pivo'"],
       [`sketch(XY).moveTo([0,0]).lineTo([1,0], { filet: 2 }).close();`, "lineTo does not take 'filet'"],
       [`sketch(XY).rect([0,0],[1,1], { filet: 2 });`, "rect does not take 'filet'"],
       [`sketch(XY).moveTo([0,0]).lineTo([1,0]).close({ chamfr: 1 });`, "close does not take 'chamfr'"],

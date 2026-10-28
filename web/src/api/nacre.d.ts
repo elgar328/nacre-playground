@@ -38,9 +38,9 @@ declare class Axis extends Dir {
  * original stays usable (the build copies before consumption). */
 declare class Solid {
   translate(offset: Vec3): Solid;
-  rotateX(deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
-  rotateY(deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
-  rotateZ(deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
+  rotateX(deg: number, opts?: { pivot?: Vec3 }): Solid;
+  rotateY(deg: number, opts?: { pivot?: Vec3 }): Solid;
+  rotateZ(deg: number, opts?: { pivot?: Vec3 }): Solid;
   mirror(plane: PlaneToken, opts?: { offset?: number }): Solid;
   copy(): Solid;
   /** Pick vertices by appearance (report f64); state them by name. */
@@ -109,9 +109,9 @@ declare function cut(base: Solid, ...tools: Solid[]): Solid;
 declare function common(...solids: Solid[]): Solid;
 
 declare function translate(s: Solid, offset: Vec3): Solid;
-declare function rotateX(s: Solid, deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
-declare function rotateY(s: Solid, deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
-declare function rotateZ(s: Solid, deg: number, opts?: { pivot?: "center" | Vec3 }): Solid;
+declare function rotateX(s: Solid, deg: number, opts?: { pivot?: Vec3 }): Solid;
+declare function rotateY(s: Solid, deg: number, opts?: { pivot?: Vec3 }): Solid;
+declare function rotateZ(s: Solid, deg: number, opts?: { pivot?: Vec3 }): Solid;
 /** Reflect in a world plane, moved `offset` along its own normal — the same sense
  * `plane(XY, { offset })` uses. A reflection is *in a plane*, so a plane is what it
  * takes. Only the three world planes: the kernel reflects in a coordinate plane, so a

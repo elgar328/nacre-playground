@@ -51,7 +51,7 @@ export interface Entry {
 }
 
 const PIVOT: Record<string, OptionEntry> = {
-  pivot: { doc: 'the point turned about — "center", or [x, y, z]' },
+  pivot: { doc: "the point turned about, [x, y, z] — the origin if unsaid" },
 };
 
 const MIRROR: Record<string, OptionEntry> = {

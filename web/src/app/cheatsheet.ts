@@ -51,7 +51,7 @@ export const CHEAT: CheatGroup[] = [
     title: "Moving, copying",
     rows: [
       { code: "let moved = lens.translate([12, 0, 0]);", note: "every unary op is a method and a global" },
-      { code: "let turned = moved.rotateZ(30, { pivot: \"center\" });", note: "also rotateX and rotateY; pivot: \"center\" or a point" },
+      { code: "let turned = moved.rotateZ(30, { pivot: [12, 0, 0] });", note: "also rotateX and rotateY; pivot: a point, the origin if unsaid" },
       { code: "let flipped = mirror(turned, YZ);", note: "a world plane — XY, YZ or ZX" },
       {
         code: "let half = mirror(turned, YZ, { offset: 3 });",
