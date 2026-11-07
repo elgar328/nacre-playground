@@ -1222,9 +1222,8 @@ export function makeApi(rec: Recorder) {
    * This does **not** stop a script from tilting a cylinder: `cylinder({ r, h })
    * .rotateX(30)` says one today, and the kernel refuses it at the first boolean
    * (measured: a 30° and a 45° drill cut from a plate both come back
-   * `CylinderGateUndecided`; `ObliqueCylinderCut` is the neighbouring refusal, for a
-   * tilt that meets a cut plane as an ellipse). What the narrow field buys is that there
-   * is **one** way to say a tilt, so the refusal arrives where the user wrote it — not
+   * `CylinderGateUndecided`, the turn being off the quarters). What the narrow field buys
+   * is that there is **one** way to say a tilt, so the refusal arrives where the user wrote it — not
    * from a field named `axis` that would quietly accept a direction. When the tilted-cylinder
    * milestone lands it is the kernel's gate that widens; this field follows.
    */
