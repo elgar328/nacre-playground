@@ -583,10 +583,8 @@ fn edge_segments(
                         // **A closed edge's polyline does not repeat its first point, so
                         // `windows(2)` leaves exactly one segment undrawn** — the gap a plain
                         // cylinder's rim showed. The kernel's rings are closed *implicitly*
-                        // (`nacre_tess::sample_edge`'s full-rim arm samples `0 .. (n−1)τ/n` and
-                        // stops; `boundary_ring` drops the wrap-around duplicate for the same
-                        // reason), and `edge.vertices[0] == edge.vertices[1]` is the kernel's own
-                        // spelling for "this edge closes" — the very test that arm branches on.
+                        // (`nacre_tess::Tessellation`'s doc), and `edge.vertices[0] ==
+                        // edge.vertices[1]` is the kernel's own spelling for "this edge closes".
                         //
                         // Only an **uncut** rim is affected: a rim a boolean split arrives as
                         // arcs whose endpoints differ, and consecutive arcs share endpoints, so
